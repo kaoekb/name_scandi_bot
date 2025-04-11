@@ -57,7 +57,7 @@ def menu_button_handler(message):
 
     bot.send_message(
         message.chat.id,
-        "⚔️ Три пути открыты перед тобой, путник:\n"
+        "⚔️ Два пути открыты перед тобой, путник:\n"
         "Выбери, в каком мире хочешь узнать тайны имён.",
         reply_markup=markup
     )
