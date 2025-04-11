@@ -3,6 +3,7 @@ version: '3.8'
 services:
   name_scandi_bot:
     build: .
+    image: name_scandi_bot
     environment:
       - TOKEN_TG=${TOKEN_TG}
       - OPENAI_KEY=${OPENAI_KEY}
