@@ -1,7 +1,4 @@
-.
-├── bot.py
-├── requirements.txt
-├── Dockerfile
-├── docker-compose.yml
-├── .env
-├── .gitlab-ci.yml
+### @name_scandi_bot
+
+
+Бот который шуточно докажет что твое имя скандинавское. 
