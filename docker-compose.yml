@@ -10,12 +10,6 @@ services:
       - OPENAI_KEY=${OPENAI_KEY}
       - ADMIN_ID=${ADMIN_ID}
       - TZ=Europe/Moscow
-      - PYTHONDONTWRITEBYTECODE=1   # не писать __pycache__/*.pyc (важно при read_only)
-      - TMPDIR=/tmp                 # чтобы все временные файлы шли в tmpfs
-      - PYTHONUNBUFFERED=1          # мгновенный вывод логов
-    
-    # не запускать под root (подставьте свои uid:gid, напр. 1000:1000)
-    user: "1000:1000"
 
     # защищаем корневую ФС, разрешаем запись только туда, где нужно
     read_only: true
@@ -39,9 +33,5 @@ services:
     # маленький init, чтобы зомби-процессы не копились
     init: true
 
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
 
     restart: unless-stopped
