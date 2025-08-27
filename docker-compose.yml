@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   name_scandi_bot:
-    # container_name: scandi-bot 
+    container_name: scandi-bot 
     build: .
     image: name_scandi_bot
     environment:
