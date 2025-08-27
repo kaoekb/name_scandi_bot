@@ -11,13 +11,9 @@ services:
       - ADMIN_ID=${ADMIN_ID}
       - TZ=Europe/Moscow
 
-    # защищаем корневую ФС, разрешаем запись только туда, где нужно
-    read_only: true
     volumes:
-      - ./logs:/app/logs:rw
-      - ./data:/app/data:rw
-    tmpfs:
-      - /tmp
+      - ./logs:/app/logs
+      - ./data:/app/data
 
     # ротация логов, чтобы не разрослись
     logging:
