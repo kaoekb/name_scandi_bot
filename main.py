@@ -1,5 +1,7 @@
 import os
+import re
 import logging
+import time
 import telebot
 from dotenv import load_dotenv
 from telebot.types import (
@@ -34,6 +36,44 @@ if not TOKEN_TG or not OPENAI_KEY:
 
 bot = telebot.TeleBot(TOKEN_TG)
 client = get_openai_client(OPENAI_KEY)
+
+NETWORK_ERROR_MARKERS = (
+    "remotedisconnected",
+    "network is unreachable",
+    "read timed out",
+    "connection aborted",
+    "failed to establish a new connection",
+    "max retries exceeded",
+)
+ADMIN_ALERT_COOLDOWN_SECONDS = 15 * 60
+_last_admin_alert_at = 0.0
+
+
+def sanitize_error_text(text: str) -> str:
+    """Removes sensitive credentials from exception text."""
+    sanitized = text
+    if TOKEN_TG:
+        sanitized = sanitized.replace(TOKEN_TG, "***")
+    sanitized = re.sub(r"/bot\d+:[^/\s?]+", "/bot***", sanitized)
+    return sanitized
+
+
+def is_transient_network_error(error: Exception) -> bool:
+    error_text = sanitize_error_text(str(error)).lower()
+    return any(marker in error_text for marker in NETWORK_ERROR_MARKERS)
+
+
+def notify_admin_throttled(prefix: str, error: Exception):
+    global _last_admin_alert_at
+
+    now = time.time()
+    if now - _last_admin_alert_at < ADMIN_ALERT_COOLDOWN_SECONDS:
+        logging.warning("Уведомление админу пропущено из-за cooldown")
+        return
+
+    notify_admin(f"{prefix}\n{sanitize_error_text(str(error))}")
+    _last_admin_alert_at = now
+
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -80,13 +120,34 @@ def handle_message(message):
     except Exception as e:
         logging.exception("Ошибка при генерации ответа")
         bot.send_message(message.chat.id, "⚠️ Упс! Что-то пошло не так.")
-        notify_admin(f"❌ Ошибка у @{username}:\n{e}")
+        notify_admin(f"❌ Ошибка у @{username}:\n{sanitize_error_text(str(e))}")
 
 
 if __name__ == "__main__":
-    try:
-        logging.info("🤖 Бот запущен")
-        bot.polling(none_stop=True)
-    except Exception as e:
-        logging.critical("Бот упал критически", exc_info=e)
-        notify_admin(f"🚨 Критическая ошибка бота:\n{e}")
+    failures = 0
+    logging.info("🤖 Бот запущен")
+
+    while True:
+        poll_started_at = time.time()
+
+        try:
+            bot.polling(none_stop=True, interval=0, timeout=20, long_polling_timeout=20)
+            logging.warning("Polling остановился без исключения, запускаю заново")
+            if time.time() - poll_started_at > 120:
+                failures = 0
+            failures += 1
+        except Exception as e:
+            if time.time() - poll_started_at > 120:
+                failures = 0
+            failures += 1
+            safe_error = sanitize_error_text(str(e))
+
+            if is_transient_network_error(e):
+                logging.warning("Сетевой сбой polling: %s", safe_error)
+            else:
+                logging.critical("Бот упал критически", exc_info=e)
+                notify_admin_throttled("🚨 Критическая ошибка бота:", e)
+
+        retry_delay = min(2 ** min(failures, 6), 60)
+        logging.info("Перезапуск polling через %s сек", retry_delay)
+        time.sleep(retry_delay)
