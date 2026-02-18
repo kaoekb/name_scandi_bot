@@ -2,7 +2,12 @@ import os
 import logging
 import telebot
 from dotenv import load_dotenv
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+)
 
 from bot.notifier import notify_admin
 from bot.responder import get_openai_client, generate_response
@@ -29,8 +34,6 @@ if not TOKEN_TG or not OPENAI_KEY:
 
 bot = telebot.TeleBot(TOKEN_TG)
 client = get_openai_client(OPENAI_KEY)
-
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
 @bot.message_handler(commands=['start'])
 def start(message):
