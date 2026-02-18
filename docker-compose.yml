@@ -29,5 +29,4 @@ services:
     # маленький init, чтобы зомби-процессы не копились
     init: true
 
-
     restart: unless-stopped
